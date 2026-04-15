@@ -1,476 +1,95 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh">
 <head>
-    <link rel="icon" type="image/png" href="./icon.png?v=2">
+    <link rel="icon" type="image/png" href="icon1.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>稽查工单话术生成器</title>
+    <title>加载页面中</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
             min-height: 100vh;
-            padding: 20px;
         }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            overflow: hidden;
+        #content { min-height: 100vh; }
+        .error {
+            text-align: center;
+            padding: 80px 20px;
+            color: #dc2626;
         }
-
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px 25px;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
-            gap: 15px;
-        }
-        .header-left { display: flex; align-items: center; gap: 15px; }
-        .header-text h1 { font-size: 26px; margin-bottom: 4px; }
-        .header-text p { opacity: 0.9; font-size: 13px; }
-        .search-box { position: relative; width: 280px; }
-        .search-box input {
-            width: 100%; padding: 12px 18px 12px 45px; border: none; border-radius: 40px;
-            font-size: 14px; background: rgba(255,255,255,0.2); color: white;
-            backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.3);
-        }
-        .search-box input::placeholder { color: rgba(255,255,255,0.9); }
-        .search-icon { position: absolute; left: 18px; top: 50%; transform: translateY(-50%); font-size: 16px; }
-        .main-content { display: grid; grid-template-columns: 320px 1fr; min-height: 650px; background: #fff; }
-        .sidebar {
-            background: #f8fafc; border-right: 1px solid #e2e8f0;
-            overflow-y: auto; max-height: calc(100vh - 160px);
-        }
-        .category.hidden { display: none; }
-        .category-header {
-            padding: 16px 20px; background: #fff; cursor: pointer; font-weight: 600;
-            display: flex; justify-content: space-between; border-bottom: 1px solid #e2e8f0;
-        }
-        .category-header.active { background: #2a5298; color: white; }
-        .category-count { background: #e2e8f0; padding: 2px 10px; border-radius: 20px; font-size: 12px; }
-        .category-header.active .category-count { background: white; color: #2a5298; }
-        .subcategories { display: none; background: white; }
-        .subcategories.show { display: block; }
-        .subcategory-item {
-            padding: 13px 20px 13px 45px; cursor: pointer; font-size: 14px;
-            border-left: 3px solid transparent; border-bottom: 1px solid #f1f5f9;
-        }
-        .subcategory-item:hover { background: #f1f5f9; border-left-color: #2a5298; }
-        .subcategory-item.active { background: #e6f0ff; border-left-color: #2a5298; font-weight: 500; color: #1e3c72; }
-        .content-area { padding: 28px; overflow-y: auto; max-height: calc(100vh - 160px); }
-        .form-section {
-            background: #f9fafb; padding: 24px; border-radius: 20px;
-            margin-bottom: 25px; border: 1px solid #eef2f6;
-        }
-        .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
-        .form-group label { font-weight: 500; color: #1e293b; margin-bottom: 6px; display: block; }
-        .form-group input, .form-group select, .form-group textarea {
-            width: 100%; padding: 12px 14px; border: 1.5px solid #d1d5db;
-            border-radius: 14px; font-size: 14px; background: white;
-        }
-        .form-group textarea { min-height: 80px; resize: vertical; }
-        .template-preview {
-            background: white; padding: 22px; border-radius: 20px;
-            border: 1px solid #d1d5db; margin-bottom: 20px;
-        }
-        .template-text {
-            background: #f0f9ff; padding: 20px; border-radius: 16px;
-            line-height: 1.8; white-space: pre-wrap; font-size: 14.5px;
-            border-left: 6px solid #3b82f6; color: #1e293b;
-        }
-        .highlight { background: #fef3c7; padding: 2px 6px; border-radius: 16px; font-weight: 500; }
-        .actions { display: flex; gap: 15px; }
-        .btn {
-            padding: 14px 20px; border: none; border-radius: 40px; font-size: 15px;
-            font-weight: 500; cursor: pointer; transition: all 0.2s; flex: 1; text-align: center;
-        }
-        .btn-primary { background: #2a5298; color: white; box-shadow: 0 8px 14px rgba(42,82,152,0.3); }
-        .btn-primary:hover { background: #1e3c72; transform: translateY(-2px); }
-        .btn-secondary { background: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1; }
-        .toast {
-            position: fixed; top: 24px; right: 24px; background: #1e293b; color: white;
-            padding: 14px 28px; border-radius: 60px; display: none; z-index: 1000;
-            animation: slideIn 0.25s; font-weight: 500;
-        }
-        .toast.show { display: block; }
-        @keyframes slideIn { from { transform: translateX(400px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        .empty-state { text-align: center; padding: 80px 20px; color: #94a3b8; }
-        .shortcut-hint { margin-top: 16px; color: #64748b; text-align: center; font-size: 13px; }
-        .required-dot::after { content: " *"; color: #dc2626; }
-        .warning-note { background: #fffbeb; border-radius: 14px; padding: 12px 16px; color: #b45309; margin-top: 16px; }
-        .full-width { grid-column: 1 / -1; }
     </style>
 </head>
 <body>
-<div class="container">
-    <div class="header">
-        <div class="header-left">
-            <div class="header-text">
-                <h1>稽查 工单 全量话术</h1>
-                <p>稽查话术 / 工单话术 / 全量话术 · 一键生成标准回复</p>
-                <a href="https://nsqb159.github.io/JI-XIAO/" target="_blank">📊 不会查绩效？点我</a>
-                <a href="https://nsqb159.github.io/xiaoxi/" target="_blank">📊 不会值守话术？点我</a>
-            </div>
-        </div>
-        <div class="search-box">
-            <span class="search-icon">🔍</span>
-            <input type="text" id="searchInput" placeholder="搜索话术… (Ctrl+F)" onkeyup="handleSearch()">
-        </div>
-    </div>
+    <div id="content"></div>
 
-    <div class="main-content">
-        <div class="sidebar" id="sidebar"></div>
-        <div class="content-area" id="contentArea">
-            <div class="empty-state">
-                <svg viewBox="0 0 24 24" width="80" height="80" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-                <h3>从左侧选择话术类型</h3>
-            </div>
-        </div>
-    </div>
-</div>
-<div class="toast" id="toast">✅ 话术已复制到剪贴板</div>
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-<script>
-    (function(){
-        // ---------- 完整话术模板数据 (已去除异常订单标题) ----------
-        const templates = {
-            '一、稽查话术': {
-                '1. 少付 (知晓价格)': { 
-                    needsDesc: true,
-                    template: (data) => `商家您好，${data.desc || '【异常问题描述】'}，客服侧会及时联系顾客追讨，为了保障店铺财产安全，我们将在48小时内按照售卖价优先向顾客追讨，如48小时内未追讨成功微店会优先为按照进货价为您垫付；（注意：若店铺未进行投保，无法赔付），如有任何问题可以随时联系服务管家，竭诚为您服务。`
-                },
-                '2. 少付 (不知晓价格)': { 
-                    needsDesc: true,
-                    template: (data) => `商家您好，${data.desc || '【异常问题描述】'}，为了保障店铺财产安全，请您在微店24APP中点击【订单-找到该异常单-待补充材料】 ，在商品库选择商品、确认商品条码及售卖价格，您补充完价格之后，我们将在48小时内按照售卖价优先向顾客追讨，如48小时内未追讨成功微店会优先为按照进货价为您垫付（注意：若店铺未进行投保，无法赔付），如有任何问题可以随时联系服务管家，竭诚为您服务。`
-                },
-                '3. 多付 (退款已发起)': { 
-                    needsDesc: true,
-                    template: (data) => `商家您好，${data.desc || '【异常问题描述】'}，客服侧已发起退款，退款发起后24h系统将自动退款，辛苦您确认，无异常请点击同意退款，如有异常情况请在退款发起24h内及时点击拒绝退款。
-▸ 如何查看异常回放及退款详情：
-请打开微店APP，进入首页：
-【订单/出入】 -搜索订单编号 → 查看视频回放及查看订单信息 →确认后点击【待商家处理退款】→点击【同意退款】/【拒绝退款】， 如有任何问题可以随时联系服务管家，竭诚为您服务。`
-                },
-                '4. 多付 (特殊情况)': { 
-                    needsDesc: true,
-                    template: (data) => `商家您好，${data.desc || '【异常问题描述】'}，已和买家承诺48小时进行退款，为了买家对您店铺保持信任，您可联系客服处理或自行处理,处理流程为：APP首页-订单/出入-搜索订单编号-找到该商品选择申请退款即可。选择"退款退货"提交申请即可。`
-                },
-                '5. 扫描商家二维码 (且通过pos机付款)': { 
-                    needsDesc: true,
-                    template: (data) => `商家您好，${data.desc || '【异常问题描述】'}，买家已通过平台付款，有重复付款到您个人收款码，辛苦核实是否收到，如收到可联系顾客自行退款，为了保障您店铺财产安全及顾客体验，云值守期间请您将个人收款码收起，以便客服核对账单，避免出现漏付，感谢配合！`
-                },
-                '6. 未成年人退款': { 
-                    needsDesc: true,
-                    template: (data) => `商家您好，${data.desc || '【异常问题描述】'}，因该顾客未成年购买香烟，需办理退款，香烟已放回至烟柜，
-客服侧已发起退款，退款发起后24h系统将自动退款，辛苦您确认，无异常请点击同意退款，如有异常情况请在发起24h内及时点击拒绝退款。
-▸ 如何查看异常回放及退款详情：
-请打开微店商家APP，进入首页：
-【订单/出入】 -搜索订单编号 → 查看视频回放及查看订单信息 →确认后点击【待商家处理退款】→点击【同意退款】/【拒绝退款】，如有任何问题可以随时联系服务管家，竭诚为您服务。`
-                },
-                '7. 扫描商家二维码 (未通过pos机付款)': { 
-                    needsDesc: true,
-                    template: (data) => `商家您好，${data.desc || '【异常问题描述】'}，顾客已经将款项支付到您个人收款账户，辛苦您确认，为了保障您店铺财产安全，云值守期间顾请您将个人收款码收起，以便客服核对账单，避免出现漏付，感谢配合！`
-                },
-                '8. 等价置换 (无法确认差价)': { 
-                    needsDesc: true,
-                    template: (data) => `商家您好，${data.desc || '【异常问题描述】'}，辛苦商家核实商品是否存在差价，在您确认价格后，会向顾客多退少补，如有任何问题可以随时联系服务管家 ，竭诚为您服务。`
-                },
-                '9. 等价置换 (无差价)': { 
-                    needsDesc: true,
-                    template: (data) => `商家您好，${data.desc || '【异常问题描述】'}，客服侧已确认商品价格一致，请商家知晓～`
-                },
-                '10. 大额盗抢 (连续/超500/5包以上)': { 
-                    needsDesc: true,
-                    template: (data) => `商家您好，${data.desc || '【异常问题描述】'}，为了保障店铺财产安全，请您在微店24APP中点击【订单-找到该异常单-待补充材料】 ，在附加信息内填写商品名称、商品条码、售卖价格及报警立案回执单等资料，您补充完价格之后，我们将在48小时内按照售卖价优先向顾客追讨，如48小时内未追讨成功微店会优先为按照进货价为您垫付（注意：若店铺未进行投保，无法赔付），如有任何问题可以随时联系服务管家，竭诚为您服务。
-如资损金额已经达到保险起赔额，太平洋保险辛苦您在微店后台及时按照页面提示上传保险资料（仅适用太平洋保险），如是其他保险，还请您案发后24h内尽快联系保险公司报案避免影响保险赔付～
-本事件属于严重偷盗事件，还需要您尽快报警，如需帮助可随时联系微店客服，感谢您的配合～`
-                },
-                '11. 普通偷盗 (未知价格)': { 
-                    needsDesc: true,
-                    template: (data) => `商家您好，${data.desc || '【异常问题描述】'}，为了保障店铺财产安全，请您在微店24APP中点击【订单-找到该异常单-待补充材料】 ，在商品库选择商品、确认商品条码及售卖价格，您补充完价格之后，我们将在48小时内按照售卖价优先向顾客追讨，如48小时内未追讨成功微店会优先为按照进货价为您垫付（注意：若店铺未进行投保，无法赔付），如有任何问题可以随时联系服务管家，竭诚为您服务。
-因偷盗存在较大风险，建议您报警处理，如需帮助可随时联系微店客服，感谢您的配合～`
-                },
-                '12. 偷盗 (已知价格)': { 
-                    needsDesc: true,
-                    template: (data) => `商家您好，${data.desc || '【异常问题描述】'}，客服侧会及时联系顾客追讨，为了保障店铺财产安全，我们将在48小时内按照售卖价优先向顾客追讨，如48小时内未追讨成功微店会优先为按照进货价为您垫付；（注意：若店铺未进行投保，无法赔付），
-因偷盗存在较大风险，建议您报警处理，如需帮助可随时联系微店客服，感谢您的配合～`
-                },
-                '13. 倚门盗抢 (小额)': { 
-                    needsDesc: true,
-                    template: (data) => `老板您好，值守客服发现您店铺发生倚门盗抢事件，${data.desc || '【异常问题描述】'}，此类盗抢方式极高风险性，很可能后续再次被盗，造成店铺二次资损，情况十分紧急！
+        // ========== 配置区域 ==========
+        const SUPABASE_URL = 'https://sqhcbwqrpyzglbcclzzj.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNxaGNid3FycHl6Z2xiY2NsenpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxODIwMDUsImV4cCI6MjA5MTc1ODAwNX0.1-MdHopPxwfzU9Zu78Ae4FiyMazAPswrA4HwcHJKeP0';
+        
+        // 🔥 页面名称
+        const PAGE_NAME = '稽查工单话术';
+        // =============================
 
-强烈建议您第一时间报警处理，警方介入不仅能固定盗抢证据、提升追回损失的概率，也能为后续赔付提供关键法律依据。 
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        window.sharedSupabase = supabase;
 
-同时，请您及时登录微店24APP中点击【订单-找到该异常单-待补充材料】 ，在附加信息内填写商品名称、商品条码、售卖价格等资料，您补充完价格之后，我们将在48小时内按照售卖价优先向顾客追讨，如48小时内未追讨成功微店会优先为按照进货价为您垫付（注意：若店铺未进行投保，无法赔付）
-辛苦您尽快完成操作，如有疑问可随时联系服务管家。`
-                },
-            },
-            '二、工单话术': {
-                '冰箱门 (通用)': {
-                    fields: [{name: 'choice', label: '话术选择', options: ['标准版(培训考核)', '加强版(绩效扣罚)']}],
-                    template: (data) => {
-                        if (data.choice === '加强版(绩效扣罚)') {
-                            return `老板您好，关于您反馈冰柜未关的问题已核实，已对相应客服作出相关绩效扣罚，同时反馈追讨协助追讨损失，让您担忧了非常抱歉。因现在天气逐渐变热，冷饮类商品会比较畅销，所以冰箱门也是我们强调的重点值守地方。已再次同步所有值班店长，时刻关注店内防范异常情况，积极主动介入引导，夏季来临冰箱门问题随时关注做好引导服务，因此情况不在赔付范围内，我们会反馈追讨专员协助您追讨。`;
-                        }
-                        return `您好老板，关于您反馈的冰箱门的问题我们已核实。实在抱歉老板，针对此问题，我们会核实值守客服值守情况，对于存在问题的客服会有相关培训考核等处理。我们会有相关培训，要求客服及时提醒关闭冰柜门，尽量减少商家不必要的损失。辛苦您尽快提供商品价格，因此情况不在赔付范围内，我们会反馈追讨专员协助您追讨。如果追不上可让追讨进行报警。`;
-                    }
-                },
-                '无法赔付·协助追讨': {
-                    template: () => `如果遇到我们已经发起定损，但老板迟迟没有补充价格的，首先在群内再次告知老板尽快填写价格，我们这边会同步追讨，追讨进度您可在定损详情内进行查看，然后工单备注已引导商家尽快补充价格  目前已记录追讨表 且已告知商家 追讨进度可在定损详情内进行查看 就可以关单了。`
-                },
-                '资损未拦截 (标准)': {
-                    template: () => `关于资损未及时拦截问题我们已核实。针对未及时拦截的情况，我们会核实值守客服值守情况，对于存在问题的客服会有相关培训考核等处理。请您放心，除了一线值守客服进行实时看守，我们还有二线稽查客服对值守客服标记异常的情况进行二次复核，除了稽查复核我们还有三线质检人员抽检客服未打标的订单，对于漏付顾客会有追讨人员进行针对性的追讨，我们多重防线共同守护店内财产安全。同时也会加大值守力度与稽查力度，为您和顾客提供更优质的服务。`
-                },
-                '资损未拦截 (复盘)': {
-                    template: () => `老板您好，关于您之前反馈的漏付问题，我们已复盘当时客服值守情况 分析问题点进行培训处理 也会同步值班店长注意商品支付引导  避免此类情况发生 我方现有完善的二线稽查制度，如果第一时间没有发现异常，在二线发现异常后我们将在48小时内按照售卖价优先向顾客追讨，如48小时内未追讨成功微店会优先为您垫付进价，如有任何问题可以随时联系服务管家，竭诚为您服务。`
-                },
-                '介入不及时 (通用)': {
-                    template: () => `您好店主，关于您反馈的介入问题我们已核实，针对介入不及时的情况，我们已核实当时的值守情况，对于问题客服会有相关培训考核等处理。我们近期正在不断改善，在每个时间段都已增加了人力，抱歉给您带来了麻烦，后续您也可以持续观察，如有任何问题/建议您可及时发到群里哈。`
-                },
-                '介入不及时 (分配逻辑优化)': {
-                    template: () => `您好店主，关于您反馈的值守问题值守侧已核实，根据客服介入引导的情况我们也吸取了经验，为预防后期异常情况，目前门店分配逻辑已进行更改，门店重点关注已重新修改，已同步所有值班店长，时刻关注门店情况，及时介入拦截，加强门店值守力度，抱歉对您的门店造成困扰了。`
-                },
-                '介入不及时 (高峰期人力)': {
-                    template: () => `店主您好，关于您反馈的值守问题已核实，由于近期订单高峰期，存在人力不足分配不均，导致出现了介入不及时的情况，目前我们已在进行调整安排，新客服人力已在陆续安排到岗，同时我们也会再次强调服务介入的重要性，提升顾客购物体验感的同时保证店内财产安全及时做好提醒和积极的引导服务。也感谢您的监督，后续有任何问题/建议可随时发送到群内，我们进行沟通完善。`
-                },
-                '未按重点执行': {
-                    fields: [{name: 'issue', label: '具体问题 (如：未拦截整条香烟)', type: 'text'}],
-                    template: (data) => `老板您好，关于您反馈的${data.issue || 'xxx'}问题已核实，因客服同时看管多家店铺未能及时拦截到该顾客购买整条香烟我们深感抱歉，目前已对相关客服作出绩效扣除，同时也会同步所有值班店长注意此类问题的发生，后续您也可在店内做些物理拦截，例如（将柜子锁起、粘贴提示语等）我们共同携手维护好店内的财产安全，后续有任何问题可以随时联系服务管家，竭诚为您服务。`
-                },
-                '设备离线 (>20分钟)': {
-                    fields: [{name: 'start', label: '开始时间', type: 'text'}, {name: 'end', label: '恢复时间', type: 'text'}],
-                    template: (data) => `老板您好，关于您反馈的设备离线问题已核实，店铺于${data.start || 'xxx'}网络出现异常于${data.end || 'xxx'}进行恢复，持续时间较长，给您带来不便非常抱歉。`
-                },
-                '设备离线 (<20分钟)': {
-                    fields: [{name: 'start', label: '开始时间', type: 'text'}, {name: 'end', label: '恢复时间', type: 'text'}, {name: 'duration', label: '持续分钟', type: 'text'}],
-                    template: (data) => `老板您好，关于您反馈的设备离线的问题，已核实，店铺于${data.start || 'xxx'}网络出现异常于${data.end || 'xxx'}进行恢复，持续时间为${data.duration || 'xx'}分钟，短时间离线可能是网络存在波动，为避免打扰到您客服会进行实时观察和刷新，设备出现离线情况时，APP会第一时间推送消息提醒。您也可在 APP 内进行实时查看。`
-                },
-                '门未关 (已开启人形)': {
-                    template: () => `老板您好，现店铺均已开启人形检测，若门未关有顾客进店的话是会通过人形检测分配客服的，请您知晓哈。`
-                },
-                '门未关 (未开启人形)': {
-                    template: () => `老板您好，门未关期间会有异常专员在进行实时看管的，后期会为店铺开启人形检测，若门未关有顾客进店的话是会通过人形检测分配客服的，请您知晓哈。`
-                },
-                'POS离线未告知': {
-                    template: () => `老板您好，微店的付款方式有两种：第一种是用pos机支付，第二种也可以用小程序进行支付的，pos无法使用时客服有及时引导顾客用小程序支付，如需要pos离线通知，您可在重点关注内进行备注/可查看app,app是有消息推送的，辛苦您知晓。`
-                }
-            },
-            '三、全量话术': {
-                '全量核实 (30条以内)': {
-                    fields: [
-                        {name: 'productName', label: '商品名称', type: 'text', placeholder: '如：农夫山泉'},
-                        {name: 'date', label: '核实日期段', type: 'text', placeholder: '如：3月1日0:00至3月2日0:00'}
-                    ],
-                    template: (data) => `老板您好，关于您反馈的${data.productName || 'xx商品'}丢失问题已核实，${data.date || 'x月x日0:00至x月x日0:00'}期间，客服已全量核实所有出入记录，未发现异常，辛苦知晓～`
-                },
-                '抽查核实 (30条以上)': {
-                    fields: [
-                        {name: 'productName', label: '商品名称', type: 'text', placeholder: '如：农夫山泉'},
-                        {name: 'date', label: '核实日期段', type: 'text', placeholder: '如：3月1日0:00至3月2日23:59'}
-                    ],
-                    template: (data) => `老板您好，关于您反馈的${data.productName || 'xx商品'}丢失问题，已核实${data.date || 'x月x日0:00至x月x日23:59'}期间，暂未发现异常。因时间段较长核查难度较大，如您有具体时间节点/订单等信息可补充说明，客服会尽快为您处理。如有任何问题可以随时联系服务管家，竭诚为您服务。`
-                },
-                '非值守期间消失': {
-                    fields: [
-                        {name: 'productName', label: '商品名称', type: 'text', placeholder: '如：农夫山泉'},
-                        {name: 'closeTime', label: '关闭值守时间', type: 'text', placeholder: '如：3月1日22:00'},
-                        {name: 'openTime', label: '开启值守时间', type: 'text', placeholder: '如：3月2日8:00'}
-                    ],
-                    template: (data) => `老板您好，关于您反馈的${data.productName || 'xx商品'}丢失问题已核实，${data.closeTime || 'x月x日0:00'}您关闭值守，${data.openTime || 'x月x日0:00'}再次开启值守时商品已不在，辛苦老板核实是否为非值守期间售出。如有任何问题可以随时联系服务管家，竭诚为您服务。`
-                },
-                '值守期间无变化': {
-                    fields: [
-                        {name: 'productName', label: '商品名称', type: 'text', placeholder: '如：农夫山泉'},
-                        {name: 'openTime', label: '开启值守时间', type: 'text', placeholder: '如：3月1日8:00'},
-                        {name: 'count', label: '商品数量', type: 'text', placeholder: '如：5'}
-                    ],
-                    template: (data) => `老板您好，关于您反馈的${data.productName || 'xx商品'}丢失问题已核实，${data.openTime || 'x月x日0:00'}开启值守时商品为${data.count || 'x'}个，再次开启值守时商品为${data.count || 'x'}个，无明显变化，辛苦老板核实是否为非值守期间售出。如有任何问题可以随时联系服务管家，竭诚为您服务。`
-                }
+        const contentDiv = document.getElementById('content');
+
+        async function loadPage(pageName) {
+            if (!pageName) {
+                contentDiv.innerHTML = `<div class="error"><h3>❌ 错误</h3><p>未指定页面名称</p></div>`;
+                return;
             }
-        };
-
-        let currentCategory = '';
-        let currentSubcategory = '';
-
-        function initSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            let html = '';
-            Object.keys(templates).forEach(cat => {
-                const subs = Object.keys(templates[cat]);
-                html += `<div class="category"><div class="category-header" onclick="toggleCategory(this)"><span>${cat}</span><span class="category-count">${subs.length}</span></div><div class="subcategories">`;
-                subs.forEach(sub => { html += `<div class="subcategory-item" onclick="selectSubcategory('${cat}', '${sub}')">${sub}</div>`; });
-                html += `</div></div>`;
-            });
-            sidebar.innerHTML = html;
-        }
-
-        window.toggleCategory = function(el) {
-            const sub = el.nextElementSibling;
-            const isActive = el.classList.contains('active');
-            document.querySelectorAll('.category-header').forEach(h => { h.classList.remove('active'); h.nextElementSibling.classList.remove('show'); });
-            if (!isActive) { el.classList.add('active'); sub.classList.add('show'); }
-        };
-
-        window.selectSubcategory = function(cat, sub) {
-            currentCategory = cat; currentSubcategory = sub;
-            document.querySelectorAll('.subcategory-item').forEach(i => i.classList.remove('active'));
-            event.target.classList.add('active');
-            showForm(cat, sub);
-        };
-
-        function showForm(cat, sub) {
-            const area = document.getElementById('contentArea');
-            const tpl = templates[cat][sub];
             
-            let extraFields = '';
-            if (tpl.fields) {
-                tpl.fields.forEach(f => {
-                    if (f.options) {
-                        extraFields += `<div class="form-group"><label>${f.label}</label><select id="${f.name}">${f.options.map(o=>`<option>${o}</option>`).join('')}</select></div>`;
-                    } else {
-                        extraFields += `<div class="form-group"><label>${f.label}</label><input type="text" id="${f.name}" placeholder="${f.placeholder || '请输入'}"></div>`;
-                    }
-                });
+            const { data, error } = await supabase
+                .from('page_code')
+                .select('*')
+                .eq('page_name', pageName)
+                .single();
+
+            if (error) {
+                contentDiv.innerHTML = `<div class="error">
+                    <h3>❌ 加载失败</h3>
+                    <p>${error.message}</p>
+                    <p style="margin-top:20px;font-size:14px;">页面 "${pageName}" 不存在</p>
+                </div>`;
+                document.title = '错误';
+                return;
             }
 
-            let descField = '';
-            if (tpl.needsDesc) {
-                descField = `<div class="form-group full-width"><label class="required-dot">异常问题描述</label><textarea id="descInput" placeholder="例如：顾客多付一瓶农夫山泉，少付一盒香烟"></textarea></div>`;
+            document.title = pageName;
+
+            // 清除旧样式和脚本
+            document.querySelectorAll('style[data-dynamic]').forEach(s => s.remove());
+            document.querySelectorAll('script[data-dynamic]').forEach(s => s.remove());
+
+            // 注入 CSS
+            if (data.css_content) {
+                const style = document.createElement('style');
+                style.setAttribute('data-dynamic', 'true');
+                style.textContent = data.css_content;
+                document.head.appendChild(style);
             }
 
-            area.innerHTML = `
-                <div class="form-section">
-                    <h3>📝 ${sub}</h3>
-                    <div class="form-grid">
-                        ${extraFields}
-                        ${descField}
-                    </div>
-                    ${tpl.needsDesc ? '<div class="warning-note">💡 提示：请填写具体的异常问题描述，将替换话术中的【异常问题描述】</div>' : ''}
-                </div>
-                <div class="template-preview">
-                    <h3>📄 话术预览</h3>
-                    <div class="template-text" id="previewText">${generatePreviewText()}</div>
-                </div>
-                <div class="actions">
-                    <button class="btn btn-primary" onclick="copyMessage()">📋 复制话术</button>
-                    <button class="btn btn-secondary" onclick="resetForm()">🔄 重置</button>
-                </div>
-                <div class="shortcut-hint">Ctrl+Enter 复制 · Esc 重置 · Ctrl+F 搜索</div>
-            `;
+            // 注入 HTML
+            contentDiv.innerHTML = data.html_content || '';
 
-            setTimeout(() => {
-                bindInputs();
-                updatePreview();
-            }, 10);
+            // 执行 JavaScript
+            if (data.js_content) {
+                const script = document.createElement('script');
+                script.setAttribute('data-dynamic', 'true');
+                script.setAttribute('type', 'module');
+                script.textContent = data.js_content;
+                document.body.appendChild(script);
+            }
         }
 
-        function bindInputs() {
-            document.querySelectorAll('input, select, textarea').forEach(el => {
-                el.addEventListener('input', updatePreview);
-                el.addEventListener('change', updatePreview);
-            });
-        }
-
-        function getFormData() {
-            const data = { desc: document.getElementById('descInput')?.value || '【待补充异常描述】' };
-            document.querySelectorAll('.form-section input, .form-section select').forEach(el => { 
-                if(el.id && el.id !== 'descInput') data[el.id] = el.value; 
-            });
-            return data;
-        }
-
-        function generatePreviewText() {
-            if (!currentSubcategory) return '请从左侧选择话术类型';
-            const tpl = templates[currentCategory][currentSubcategory];
-            const data = getFormData();
-            let msg = tpl.template(data);
-            return msg.replace(/【.*?】/g, m => `<span class="highlight">${m}</span>`);
-        }
-
-        function updatePreview() { 
-            const p = document.getElementById('previewText'); 
-            if(p) p.innerHTML = generatePreviewText(); 
-        }
-
-        window.copyMessage = function() {
-            const text = document.getElementById('previewText')?.innerText || '';
-            navigator.clipboard?.writeText(text).then(() => {
-                const t = document.getElementById('toast'); 
-                t.classList.add('show'); 
-                setTimeout(() => t.classList.remove('show'), 2000);
-            }).catch(() => { 
-                const ta = document.createElement('textarea'); 
-                ta.value = text; 
-                document.body.appendChild(ta); 
-                ta.select(); 
-                document.execCommand('copy'); 
-                document.body.removeChild(ta); 
-                const t = document.getElementById('toast'); 
-                t.classList.add('show'); 
-                setTimeout(() => t.classList.remove('show'), 2000);
-            });
-        };
-
-        window.resetForm = function() { 
-            document.querySelectorAll('.form-section input, .form-section select, .form-section textarea').forEach(el => el.value = ''); 
-            updatePreview(); 
-        };
-
-        window.handleSearch = function() {
-            const kw = document.getElementById('searchInput').value.toLowerCase();
-            document.querySelectorAll('.category').forEach(cat => {
-                let has = false;
-                cat.querySelectorAll('.subcategory-item').forEach(sub => { 
-                    if(sub.textContent.toLowerCase().includes(kw)) { 
-                        sub.classList.remove('hidden'); 
-                        has = true; 
-                    } else { 
-                        sub.classList.add('hidden'); 
-                    } 
-                });
-                if(kw && has) { 
-                    cat.classList.remove('hidden'); 
-                    cat.querySelector('.subcategories').classList.add('show'); 
-                    cat.querySelector('.category-header').classList.add('active'); 
-                } else if(kw) { 
-                    cat.classList.add('hidden'); 
-                } else { 
-                    cat.classList.remove('hidden'); 
-                    cat.querySelector('.subcategories').classList.remove('show'); 
-                    cat.querySelector('.category-header').classList.remove('active'); 
-                    cat.querySelectorAll('.subcategory-item').forEach(s => s.classList.remove('hidden')); 
-                }
-            });
-        };
-
-        document.addEventListener('DOMContentLoaded', () => {
-            initSidebar();
-            document.addEventListener('keydown', e => {
-                if(e.ctrlKey && e.key === 'Enter') { 
-                    e.preventDefault(); 
-                    if(currentSubcategory) copyMessage(); 
-                } else if(e.key === 'Escape') { 
-                    if(document.querySelector('.form-section')) resetForm(); 
-                } else if(e.ctrlKey && e.key === 'f') { 
-                    e.preventDefault(); 
-                    document.getElementById('searchInput')?.focus(); 
-                }
-            });
-        });
-    })();
-</script>
+        // 立即加载页面，不显示加载动画
+        loadPage(PAGE_NAME);
+    </script>
 </body>
 </html>
-
